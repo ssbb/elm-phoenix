@@ -1,6 +1,7 @@
 module Phoenix.Internal.Channel exposing (..)
 
 import Dict exposing (Dict)
+import Set exposing (Set)
 import Json.Decode as Decode exposing (Value)
 import Phoenix.Internal.Helpers as Helpers
 import Phoenix.Internal.Message as Message exposing (Message)
@@ -77,7 +78,7 @@ getState endpoint topic channelsDict =
         |> Maybe.map (\{ state } -> state)
 
 
-{-|  Inserts the state, identity if channel for given endpoint topic doesn_t exist
+{-| Inserts the state, identity if channel for given endpoint topic doesn_t exist
 -}
 insertState : Endpoint -> Topic -> State -> InternalChannelsDict msg -> InternalChannelsDict msg
 insertState endpoint topic state dict =
@@ -131,3 +132,8 @@ updatePayload payload { state, presenceState, channel } =
 updateOn : Dict Topic (Value -> msg) -> InternalChannel msg -> InternalChannel msg
 updateOn on { state, presenceState, channel } =
     InternalChannel state presenceState { channel | on = on }
+
+
+updateExtraTopics : Set String -> InternalChannel msg -> InternalChannel msg
+updateExtraTopics extraTopics { state, presenceState, channel } =
+    InternalChannel state presenceState { channel | extraTopics = extraTopics }

@@ -19,6 +19,7 @@ import WebSocket.LowLevel as WS
 import Dict exposing (Dict)
 import Task exposing (Task)
 import Process
+import Set exposing (Set)
 import Phoenix.Internal.Channel as InternalChannel exposing (InternalChannel)
 import Phoenix.Internal.Helpers as Helpers exposing ((&>), (<&>))
 import Phoenix.Internal.Message as Message exposing (Message)
@@ -340,6 +341,7 @@ handleEndpointChannelsUpdate router endpoint definedChannels stateChannels =
                     state
                         |> InternalChannel.updatePayload defined.channel.payload
                         |> InternalChannel.updateOn defined.channel.on
+                        |> InternalChannel.updateExtraTopics defined.channel.extraTopics
             in
                 Task.map (Dict.insert topic channel) getNewChannels
 
@@ -808,7 +810,21 @@ getEventCb : Endpoint -> Message -> InternalChannelsDict msg -> Maybe (Callback 
 getEventCb endpoint message channels =
     case Helpers.getIn endpoint message.topic channels of
         Nothing ->
-            Nothing
+            -- Try to retrieve channel by extra topic
+            let
+                extraTopicChannel =
+                    channels
+                        |> Dict.get endpoint
+                        |> Maybe.map Dict.values
+                        |> Maybe.map (List.filter (\ic -> Set.member message.topic ic.channel.extraTopics))
+                        |> Maybe.andThen List.head
+            in
+                case extraTopicChannel of
+                    Nothing ->
+                        Nothing
+
+                    Just { channel } ->
+                        Dict.get message.event channel.on
 
         Just { channel } ->
             Dict.get message.event channel.on
